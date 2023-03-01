@@ -2560,7 +2560,7 @@ VERSION
 	}
 
 
-	my $return = system "$path_to_cutadapt --version 2>&1 > \$null ";
+	my $return = system "$path_to_cutadapt --version 2>&1 > NUL ";
 	if ($return == 0){
 		warn "Cutadapt seems to be working fine (tested command '$path_to_cutadapt --version')\n";
 		$cutadapt_version = `$path_to_cutadapt --version 2>&1`;
@@ -2634,7 +2634,7 @@ VERSION
 		if ($cores > 1){
 			
 			### Test if pigz is installed
-			my $pigz_return = system ("pigz --version 2> \$null");
+			my $pigz_return = system ("pigz --version 2> NUL");
 			# warn "PIGZ returned: $pigz_return\n";
 			if ($pigz_return == 0) {
 				warn "Parallel gzip (pigz) detected. Proceeding with multicore (de)compression using $cores cores\n\n";
@@ -2665,7 +2665,7 @@ VERSION
 	}
 
 	### Test if igzip is installed
-	my $igzip_return = system ("igzip --version 2> \$null");
+	my $igzip_return = system ("igzip --version 2> NUL");
 	# warn "IGZIP returned: $igzip_return\n";
 	if ($igzip_return == 0) {
 		warn "igzip detected. Using igzip for decompressing\n\n";
