@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Getopt::Long;
 use IPC::Open3;
+use IPC::Run3;
 use File::Spec;
 use File::Basename;
 use Cwd;
@@ -1052,6 +1053,8 @@ sub trim{
       		$quality_cutoff = "-q $cutoff";
       	}
 
+        my ($trim_fh, $error_fh);
+
 		### optionally using 2 different adapters for read 1 and read 2
 		if ($validate and $a2){
      
@@ -1071,17 +1074,22 @@ sub trim{
 		else{
 			warn "\n  >>> Now performing quality (cutoff '$quality_cutoff') and adapter trimming in a single pass for the adapter sequence: '$adapter' from file $filename <<< \n";
 			#sleep (1);
-			$pid = open3 (\*WRITER, \*TRIM, \*ERROR, "$path_to_cutadapt  $cores -e $error_rate $quality_cutoff -O $stringency $trim_n -a $adapter $filename") or die "Failed to launch Cutadapt: $!";
+            run3 ("$path_to_cutadapt  $cores -e $error_rate $quality_cutoff -O $stringency $trim_n -a $adapter $filename", \undef, \$trim_fh, \$error_fh) or die "Failed to launch Cutadapt: $!";
 		}
-      
-		close WRITER or die $!; # not needed
-    
+
+        unless ($? == 0){
+            die "\n\nCutadapt terminated with exit signal: '$?'.\nTerminating Trim Galore run, please check error message(s) to get an idea what went wrong...\n\n";
+        }
+
+        open my $trim, '<', \$trim_fh;
+        open my $error, '<', \$error_fh;
+
 		while (1){
-	  
-			my $l1 = <TRIM>;
-			my $seq = <TRIM>; # quality and/or adapter trimmed sequence
-			my $l3 = <TRIM>;
-			my $qual = <TRIM>;
+
+			my $l1 = <$trim>;
+			my $seq = <$trim>; # quality and/or adapter trimmed sequence
+			my $l3 = <$trim>;
+			my $qual = <$trim>;
 			# print "$l1$seq\n$l3$qual\n";
 			last unless (defined $qual); # could be an empty string
 	  
@@ -1145,13 +1153,13 @@ sub trim{
 		}
       
 		print REPORT "\n";
-		while (<ERROR>){
+		while (<$error>){
 			warn $_;
 			print REPORT $_;
 		}	
-      
-		close TRIM or die "Unable to close TRIM filehandle: $!\n";
-		close ERROR or die "Unable to close ERROR filehandle: $!\n";
+
+		close $trim or die "Unable to close TRIM filehandle: $!\n";
+		close $error or die "Unable to close ERROR filehandle: $!\n";
 		close OUT or die  "Unable to close OUT filehandle: $!\n";
       
 	}
@@ -1171,13 +1179,7 @@ sub trim{
 			}
 		}
 	}
-  
-	### Wait and reap the child process (Cutadapt) so that it doesn't become a zombie process
-	waitpid $pid, 0;
-	unless ($? == 0){
-		die "\n\nCutadapt terminated with exit signal: '$?'.\nTerminating Trim Galore run, please check error message(s) to get an idea what went wrong...\n\n";
-	}
-  
+
 	warn "\nRUN STATISTICS FOR INPUT FILE: $filename\n";
 	print REPORT "\nRUN STATISTICS FOR INPUT FILE: $filename\n";
   
@@ -2175,9 +2177,9 @@ VERSION
 		$path_to_cutadapt = 'cutadapt'; # default, assuming it is in the PATH
 		warn "Path to Cutadapt set as: '$path_to_cutadapt' (default)\n";
 	}
-	
-	
-	my $return = system "$path_to_cutadapt --version 2>&1 > /dev/null ";
+
+
+	my $return = system "$path_to_cutadapt --version 2>&1 > NUL ";
 	if ($return == 0){
 		warn "Cutadapt seems to be working fine (tested command '$path_to_cutadapt --version')\n";
 		$cutadapt_version = `$path_to_cutadapt --version`;
@@ -2251,7 +2253,7 @@ VERSION
 		if ($cores > 1){
 			
 			### Test if pigz is installed
-			my $pigz_return = system ("pigz --version 2> /dev/null");
+			my $pigz_return = system ("pigz --version 2> NUL");
 			# warn "PIGZ returned: $pigz_return\n";
 			if ($pigz_return == 0) {
 				warn "Parallel gzip (pigz) detected. Proceeding with multicore (de)compression using $cores cores\n\n";
