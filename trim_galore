@@ -1081,15 +1081,15 @@ sub trim{
             die "\n\nCutadapt terminated with exit signal: '$?'.\nTerminating Trim Galore run, please check error message(s) to get an idea what went wrong...\n\n";
         }
 
-        open my $trim, '<', \$trim_fh;
-        open my $error, '<', \$error_fh;
+        open my $Trim, '<', \$trim_fh;
+        open my $Error, '<', \$error_fh;
 
 		while (1){
 
-			my $l1 = <$trim>;
-			my $seq = <$trim>; # quality and/or adapter trimmed sequence
-			my $l3 = <$trim>;
-			my $qual = <$trim>;
+			my $l1 = <$Trim>;
+			my $seq = <$Trim>; # quality and/or adapter trimmed sequence
+			my $l3 = <$Trim>;
+			my $qual = <$Trim>;
 			# print "$l1$seq\n$l3$qual\n";
 			last unless (defined $qual); # could be an empty string
 	  
@@ -1153,13 +1153,13 @@ sub trim{
 		}
       
 		print REPORT "\n";
-		while (<$error>){
+		while (<$Error>){
 			warn $_;
 			print REPORT $_;
 		}	
 
-		close $trim or die "Unable to close TRIM filehandle: $!\n";
-		close $error or die "Unable to close ERROR filehandle: $!\n";
+		close $Trim or die "Unable to close TRIM filehandle: $!\n";
+		close $Error or die "Unable to close ERROR filehandle: $!\n";
 		close OUT or die  "Unable to close OUT filehandle: $!\n";
       
 	}
